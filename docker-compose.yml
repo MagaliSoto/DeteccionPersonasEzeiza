@@ -1,0 +1,106 @@
+services:
+  redis-ezeiza:
+    image: redis:7.4.0
+    container_name: redis-ezeiza
+    command: "redis-server /usr/local/etc/redis/redis.conf"
+    networks:
+      - demo-network
+    ports:
+      - "26379:6379"
+    volumes:
+      - ./redis/conf:/usr/local/etc/redis
+    restart: always
+
+  mosquitto-ezeiza:
+    image: eclipse-mosquitto:2.0.20
+    container_name: mosquitto-ezeiza
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:rw
+    networks:
+      - demo-network
+    ports:
+      # MQTT
+      - "21883:1883"
+    restart: always
+
+  deepstream-init-container-ezeiza:
+    profiles:
+      - deepstream
+    container_name: deepstream-init-container-ezeiza
+    build:
+      context: perception
+      dockerfile: docker/init.Dockerfile
+    user: root
+    working_dir: /app
+    command: "bash /app/scripts/setup.bash"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 20
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+     - deepstream-vol:/opt/storage:rw
+     - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      DISPLAY: $DISPLAY
+      PERCEPTION_MODELS_DIR: $PERCEPTION_MODELS_DIR
+    privileged: true
+    networks:
+      - demo-network
+
+  deepstream-ezeiza:
+    profiles:
+      - deepstream
+    container_name: deepstream-ezeiza
+    build:
+      context: perception
+      dockerfile: docker/Dockerfile
+    user: developer
+    working_dir: /app
+    command: [
+      "/app/build/perception", 
+      "-show_sink",
+      # "-save_frames",
+      "-use_nvurisrcbin",
+      "-streams", 
+      "/app/cfg/sources.yml", 
+      "/app/cfg/config.yml"
+    ]
+    restart: always
+    deploy:
+      restart_policy:
+        condition: always
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+     - deepstream-vol:/opt/storage:rw
+     - /tmp/.X11-unix:/tmp/.X11-unix
+    #  - ./perception/cfg:/app/cfg:rw
+    environment:
+      DISPLAY: $DISPLAY
+      PERCEPTION_MODELS_DIR: $PERCEPTION_MODELS_DIR
+    privileged: true
+    networks:
+      - demo-network
+    ports:
+      - "11558:11558"
+    depends_on:
+      deepstream-init-container-ezeiza:
+        condition: service_completed_successfully
+
+volumes:
+  deepstream-vol:
+    driver: local
+
+networks:
+  demo-network:
+    name: "demo-network"

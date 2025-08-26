@@ -1,0 +1,8 @@
+.idea
+venv
+.venv
+__pycache__
+
+output_image.jpg
+
+backend/mysql-data/

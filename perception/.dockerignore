@@ -1,0 +1,8 @@
+.devcontainer
+.vscode
+.github
+build
+videos
+docker
+
+models

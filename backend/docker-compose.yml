@@ -1,0 +1,68 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: backend
+    depends_on:
+      - ollama
+      - api
+    env_file:
+      - ./.env
+    volumes:
+      - ./Personas_Detectadas:/app/Personas_Detectadas
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - demo-network
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: api
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    volumes:
+      - ./Personas_Detectadas:/app/Personas_Detectadas
+    ports:
+      - "8001:8001"
+    restart: always
+    networks:
+      - demo-network
+
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: ollama
+    env_file:
+      - ./.env
+    volumes:
+      - ./ollama-models:/root/.ollama
+    restart: always
+    networks:
+      - demo-network
+
+  db:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}       
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306" 
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    external: true

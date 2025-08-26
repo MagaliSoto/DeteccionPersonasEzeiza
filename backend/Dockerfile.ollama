@@ -1,0 +1,15 @@
+FROM ubuntu:22.04 AS ollama
+
+WORKDIR /app
+
+# Instalar dependencias y Ollama
+RUN apt-get update && apt-get install -y curl ca-certificates && \
+    curl -fsSL https://ollama.com/install.sh | sh && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configuración para exponer Ollama
+ENV OLLAMA_HOST=0.0.0.0
+EXPOSE 11434
+
+# Comando por defecto: arrancar Ollama y bajar el modelo si no existe
+CMD ["/bin/bash", "-c", "ollama serve & sleep 5 && if ! ollama list | grep -q 'qwen2.5vl:7b'; then ollama pull qwen2.5vl:7b; fi && wait"]

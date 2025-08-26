@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1
+FROM python:3.10-slim AS backend
+
+LABEL author="Magali Soto <magali@go2future.com>"
+LABEL description="Backend Python de producción con YOLO/FastSAM/Ultralytics"
+
+WORKDIR /app
+
+# Instalar dependencias del sistema necesarias para OpenCV, YOLO y FastSAM
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc g++ libpq-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear virtualenv e instalar requirements
+COPY requirements.txt .
+RUN python -m venv venv && \
+    . venv/bin/activate && \
+    pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copiar código del backend
+COPY . .
+
+# Crear carpeta de salida de imágenes
+RUN mkdir -p /app/Personas_Detectadas
+
+# Exponer puerto (si tenés FastAPI o similar)
+EXPOSE 8000
+
+# Comando por defecto para iniciar backend
+CMD ["/app/venv/bin/python", "main.py"]

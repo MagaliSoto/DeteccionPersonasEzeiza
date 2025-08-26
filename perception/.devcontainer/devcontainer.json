@@ -1,0 +1,70 @@
+{
+	// Friendly name for the dev container configuration.
+	"name": "G2F Tracking Dev",
+
+	"image": "frgentile/g2f:ds64-base",
+	// "build": {
+	// 	"dockerfile": "../docker/Dockerfile",
+	// 	"target": "ds64-dev",
+	// 	// The variable VARIANT can be used inside the Dockerfile.
+	// 	// For example: FROM node:${VARIANT}
+	// 	"args": { "VARIANT": "node" }
+	// },
+
+	// Features to add to the dev container. 
+	// More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {},
+		"ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash"
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cmake-tools",
+				"ms-vscode.makefile-tools",
+				"ms-vscode-remote.remote-ssh",
+				"ms-azuretools.vscode-docker",
+				"ms-python.python",
+				"ms-python.autopep8",
+				"eamodio.gitlens",
+				"redhat.vscode-yaml",
+				"GitHub.copilot"
+			]
+		}
+	},
+
+	"runArgs": [
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
+		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+		"-v", "demo-deepstream-vol:/opt/storage",
+		"-e", "DISPLAY=${env:DISPLAY}",
+		"-e", "PERCEPTION_MODELS_DIR=/app/models",
+		"--net=demo-network",
+		"--ipc=host",
+		"--privileged",
+		"--gpus", "all",
+		"--name", "perception-dev"
+    ],
+
+	// Workspace mount configuration.
+	"workspaceMount": "src=${localWorkspaceFolder},dst=/app,type=bind,consistency=cached",
+    "workspaceFolder": "/app",
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "bash ./scripts/devcontainer_setup.bash"
+
+	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "developer"
+
+
+}

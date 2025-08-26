@@ -1,0 +1,4 @@
+# Objects files and library
+layers/*.o
+*.o
+*.so

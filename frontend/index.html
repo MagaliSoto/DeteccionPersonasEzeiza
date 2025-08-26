@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda de Personas Detectadas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <header class="main-header">
+        <h1>Búsqueda de Personas Detectadas</h1>
+    </header>
+
+    <!-- Barra de filtros -->
+    <section class="filter-bar">
+        <label for="dateInput">Fecha:</label>
+        <input type="date" id="dateInput">
+
+        <label for="keywordInput">Palabras Clave:</label>
+        <input type="text" id="keywordInput" placeholder="Search">
+
+        <button id="searchBtn">Buscar</button>
+    </section>
+
+    <!-- Contador -->
+    <section class="info-bar">
+        <span id="photoCount">0 persons</span>
+    </section>
+
+    <div id="galleryContainer" class="gallery"></div>
+    <p id="photoCount"></p>
+
+    <!-- Modal -->
+    <div id="photoModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        
+        <!-- Encabezado: título + fecha en la misma fila -->
+        <div class="modal-header">
+        <h2 id="modalTitle"></h2>
+        <span id="modalDate"></span>
+        </div>
+        
+        <p id="modalDescription"></p>
+
+        <!-- Botones -->
+        <div id="folderButtons" class="folder-buttons"></div>
+
+        <!-- Imagen -->
+        <div class="modal-image-container">
+        <button class="nav-btn" id="prevBtn">&lt;</button>
+        <img id="modalImage" src="">
+        <button class="nav-btn" id="nextBtn">&gt;</button>
+        </div>
+    </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
