@@ -24,9 +24,14 @@ app.add_middleware(
 
 # Montamos la carpeta como pública para servir imágenes
 app.mount(f"/static/{carpeta_imagenes}", StaticFiles(directory=carpeta_imagenes), name=carpeta_imagenes)
+
 # Configuración DB
 db_name = os.getenv("DB_NAME_TABLE")
 db_struct_text = os.getenv("DB_STRUCT")
+
+if not db_name or not db_struct_text:
+    raise EnvironmentError("Variables de entorno DB_NAME_TABLE y/o DB_STRUCT no definidas.")
+
 # Convertir string a diccionario
 db_struct = dict(item.split(":") for item in db_struct_text.split(",") if item)
 
@@ -45,26 +50,31 @@ def listar_imagenes(carpeta: str):
 
 @app.get("/api/personas")
 def get_personas():
-    """
-    Devuelve todas las personas detectadas con la lista de imágenes de cuerpo y cara
-    """
     personas = db.obtener_datos()
     for persona in personas:
-        # Convertir fecha a dd/mm/yyyy
+        # Convertir fecha a yyyy-mm-dd (filtrado)
         if persona.get("fecha"):
             try:
                 fecha_obj = datetime.strptime(str(persona["fecha"]), "%Y-%m-%d")
-                persona["fecha"] = fecha_obj.strftime("%d/%m/%Y")
+                persona["fecha"] = fecha_obj.strftime("%Y-%m-%d")
             except ValueError:
                 pass
-
+        
         persona["imagenes"] = []
         persona["imagenes"] += listar_imagenes(persona.get("ruta_cuerpo", ""))
         persona["imagenes"] += listar_imagenes(persona.get("ruta_cara", ""))
+        
+        # Ahora descripcion viene como dict, no string
+        # Si quieres asegurarte que es dict, podrías hacer algo así:
+        if persona.get("descripcion") and isinstance(persona["descripcion"], str):
+            import json
+            try:
+                persona["descripcion"] = json.loads(persona["descripcion"])
+            except Exception:
+                # Si no es JSON válido, déjalo tal cual
+                pass
 
     return personas
-
-
 
 # uvicorn api.start_api:app --host 0.0.0.0 --port 8000 --reload
 

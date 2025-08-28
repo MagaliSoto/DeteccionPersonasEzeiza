@@ -9,23 +9,32 @@
 </head>
 <body>
 
-    <!-- Encabezado -->
     <header class="main-header">
         <h1>Búsqueda de Personas Detectadas</h1>
     </header>
 
-    <!-- Barra de filtros -->
     <section class="filter-bar">
         <label for="dateInput">Fecha:</label>
         <input type="date" id="dateInput">
 
+        <label for="startTime">Desde hora:</label>
+        <input type="time" id="startTime">
+
+        <label for="endTime">Hasta hora:</label>
+        <input type="time" id="endTime">
+
         <label for="keywordInput">Palabras Clave:</label>
         <input type="text" id="keywordInput" placeholder="Search">
 
+        <label class="checkbox-container">
+            <input type="checkbox" id="includeWithoutDescription" checked>
+            Incluir sin descripción
+        </label>
+
         <button id="searchBtn">Buscar</button>
+        <button id="resetFiltersBtn">Limpiar filtros</button>
     </section>
 
-    <!-- Contador -->
     <section class="info-bar">
         <span id="photoCount">0 persons</span>
     </section>
@@ -35,27 +44,32 @@
 
     <!-- Modal -->
     <div id="photoModal" class="modal hidden">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        
-        <!-- Encabezado: título + fecha en la misma fila -->
-        <div class="modal-header">
-        <h2 id="modalTitle"></h2>
-        <span id="modalDate"></span>
-        </div>
-        
-        <p id="modalDescription"></p>
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <span id="modalDate"></span>
+            </div>
 
-        <!-- Botones -->
-        <div id="folderButtons" class="folder-buttons"></div>
+            <!-- Contenedor en dos columnas -->
+            <div class="modal-body">
+                <!-- Columna izquierda -->
+                <div class="modal-left">
+                    <p id="modalDescription"></p>
+                    <div id="folderButtons" class="folder-buttons"></div>
+                </div>
 
-        <!-- Imagen -->
-        <div class="modal-image-container">
-        <button class="nav-btn" id="prevBtn">&lt;</button>
-        <img id="modalImage" src="">
-        <button class="nav-btn" id="nextBtn">&gt;</button>
+                <!-- Columna derecha -->
+                <div class="modal-right">
+                    <div class="modal-image-container">
+                        <button class="nav-btn" id="prevBtn">&lt;</button>
+                        <img id="modalImage" src="">
+                        <button class="nav-btn" id="nextBtn">&gt;</button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
     </div>
 
     <script src="script.js"></script>

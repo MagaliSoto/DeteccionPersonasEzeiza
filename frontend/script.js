@@ -33,7 +33,7 @@ async function renderGallery(albums = null) {
         let albumsToRender = albums;
 
         if (!albumsToRender) {
-            const res = await fetch("http://localhost:8001/api/personas");
+            const res = await fetch("http://api:8001/api/personas");
             albumsToRender = await res.json();
             albumsGlobal = albumsToRender;
         }
@@ -73,7 +73,8 @@ function openAlbum(album) {
 
     document.getElementById("modalTitle").textContent = `Persona ${album.ID}`;
     document.getElementById("modalDate").textContent = formatDate(album.fecha);
-    document.getElementById("modalDescription").textContent = album.descripcion;
+    // Mostrar descripción formateada
+    document.getElementById("modalDescription").innerHTML = formatDescripcion(album.descripcion);
 
     const buttonsContainer = document.getElementById("folderButtons");
     buttonsContainer.innerHTML = "";
@@ -106,6 +107,22 @@ function openAlbum(album) {
     });
 
     document.getElementById("photoModal").classList.remove("hidden");
+}
+
+// ---------------------- Formatear descripción ----------------------
+function formatDescripcion(descripcionObj) {
+    if (!descripcionObj || typeof descripcionObj !== 'object') return "Sin descripción";
+
+    const items = Object.entries(descripcionObj)
+        .map(([clave, valor]) => `<li><strong>${formatearClave(clave)}:</strong> ${valor}</li>`)
+        .join("");
+
+    return `<ul class="descripcion-lista">${items}</ul>`;
+}
+
+function formatearClave(clave) {
+    // Pasa de "ropa_principal" a "Ropa principal"
+    return clave.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 }
 
 // ---------------------- Mostrar imagen ----------------------
@@ -144,24 +161,67 @@ document.querySelector(".close").addEventListener("click", () => {
     document.getElementById("photoModal").classList.add("hidden");
 });
 
-// ---------------------- Filtros ----------------------
+// ---------------------- Funciones de filtrado ----------------------
+function filterByDate(album, dateValue) {
+    if (!dateValue) return true;
+    const albumDate = formatDate(album.fecha, true); // yyyy-mm-dd
+    return albumDate === dateValue;
+}
+
+function filterByTime(album, startTime, endTime) {
+    if (!album.fecha) return true; // si no hay fecha, no filtra por hora
+    const d = new Date(album.fecha);
+    const albumHour = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:00`;
+
+    const startTimeFull = startTime ? startTime + ":00" : null;
+    const endTimeFull = endTime ? endTime + ":00" : null;
+
+    let matches = true;
+    if (startTimeFull) matches = matches && (albumHour >= startTimeFull);
+    if (endTimeFull) matches = matches && (albumHour <= endTimeFull);
+
+    return matches;
+}
+
+function filterByKeyword(album, keywordValue) {
+    if (!keywordValue) return true;
+    if (!album.descripcion || typeof album.descripcion !== "object") return false;
+    return Object.values(album.descripcion).some(v =>
+        String(v).toLowerCase().includes(keywordValue)
+    );
+}
+
+function filterByDescriptionPresence(album, includeWithoutDescription) {
+    const hasNoDescription = !album.descripcion || Object.keys(album.descripcion).length === 0;
+    return !hasNoDescription || includeWithoutDescription;
+}
+
+// ---------------------- Aplicar filtros ----------------------
 document.getElementById("searchBtn").addEventListener("click", () => {
-    const dateValue = document.getElementById("dateInput").value; 
+    const dateValue = document.getElementById("dateInput").value;
+    const startTime = document.getElementById("startTime").value;
+    const endTime = document.getElementById("endTime").value;
     const keywordValue = document.getElementById("keywordInput").value.toLowerCase();
+    const includeWithoutDescription = document.getElementById("includeWithoutDescription").checked;
 
-    const filtered = albumsGlobal.filter(album => {
-        const albumDate = formatDate(album.fecha, true); // solo fecha para filtro
-
-        const matchesDate = dateValue ? albumDate === dateValue : true;
-        const matchesKeyword = keywordValue
-            ? (`Persona ${album.ID}`).toLowerCase().includes(keywordValue) ||
-              album.descripcion.toLowerCase().includes(keywordValue)
-            : true;
-
-        return matchesDate && matchesKeyword;
-    });
+    const filtered = albumsGlobal.filter(album =>
+        filterByDate(album, dateValue) &&
+        filterByTime(album, startTime, endTime) &&
+        (filterByKeyword(album, keywordValue) || filterByDescriptionPresence(album, includeWithoutDescription))
+    );
 
     renderGallery(filtered);
+});
+
+// ---------------------- Limpiar filtros ----------------------
+document.getElementById("resetFiltersBtn").addEventListener("click", () => {
+    document.getElementById("dateInput").value = "";
+    document.getElementById("startTime").value = "";
+    document.getElementById("endTime").value = "";
+    document.getElementById("keywordInput").value = "";
+    document.getElementById("includeWithoutDescription").checked = true;
+
+    renderGallery(albumsGlobal); // recarga todos los álbumes
 });
 
 // ---------------------- Inicializar ----------------------

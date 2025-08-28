@@ -145,16 +145,23 @@ body {
     display: none;
 }
 
+/* Modal por defecto (solo texto, más chico) */
 .modal-content {
     background: white;
     padding: 2rem;
     border-radius: 12px;
     position: relative;
-    max-width: 800px;
+    max-width: 500px;   /* más angosto cuando no hay imágenes */
     width: 100%;
     box-shadow: 0 8px 25px rgba(0,0,0,0.25);
     animation: fadeIn 0.25s ease;
 }
+
+/* Modal extendido (con imágenes) */
+.modal-content.extendido {
+    max-width: 900px;   /* más ancho cuando hay imágenes */
+}
+
 
 /* Animación modal */
 @keyframes fadeIn {
@@ -261,4 +268,53 @@ body {
 
 .nav-btn:hover {
     background: #ddd;
+}
+
+.modal-body {
+    display: flex;
+    gap: 30px;
+    margin-top: 15px;
+}
+
+/* Columna izquierda (texto + botones) */
+.modal-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    font-size: 14px;
+    color: #444;
+}
+
+/* Columna derecha (imagen + flechas) */
+.modal-right {
+    flex: 1.5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.modal-image-container img {
+    max-width: 100%;
+    max-height: 450px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.descripcion-lista {
+  list-style: none;      /* quita los puntitos */
+  padding: 0;
+  margin: 0;
+}
+
+.descripcion-lista li {
+  display: block;        /* cada <li> ocupa toda la línea */
+  margin-bottom: 5px;    /* espacio entre ítems */
 }

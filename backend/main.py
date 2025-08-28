@@ -1,9 +1,9 @@
-import argparse, redis, base64, io, time, json, os, pytz, threading
+import argparse, redis, base64, io, time, json, os, pytz, threading, json
 import paho.mqtt.client as mqtt
 from PIL import Image
 from detectores.detector_caras import DetectorCaras
 from utils import imagenes_utils as iu
-from utils.ollama_utils import ollama_analyze_image
+from utils.ollama_utils import ollama_analyze_images
 from db.db_manager import DBManager
 from datetime import datetime
 
@@ -13,6 +13,23 @@ broker_port = 1883
 topic = "/perception/tracking"
 # Create MQTT client instance
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+prompt = """
+Analiza la imagen de una persona y devuelve SOLO un JSON válido con este formato:
+
+{
+  "genero": "masculino | femenino | desconocido",
+  "edad_aproximada": "niño | adolescente | adulto_joven | adulto | adulto_mayor | desconocido",
+  "ropa_principal": "breve descripción (ej: 'buzo negro', 'camisa blanca') máx 25 caracteres",
+  "ropa_inferior": "breve descripción (ej: 'pantalón azul', 'jean negro') máx 25 caracteres",
+  "accesorio_cabeza": "ninguno | gorra | gorro | sombrero | capucha | otro"
+}
+
+Reglas:
+- Usa SOLO estos campos.
+- No agregues campos extra.
+- Devuelve únicamente el JSON.
+"""
 
 # Configuración DB
 db_name = os.getenv("DB_NAME_TABLE")
@@ -25,6 +42,9 @@ db = DBManager(db_name, db_struct)
 
 carpeta_salida = "Personas_Detectadas"
 detector_caras = DetectorCaras(db, carpeta_salida, "ruta_cara")
+
+saved_images_count = {}
+flag_alert = False
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -57,22 +77,24 @@ def on_message(client, userdata, msg):
     )
 
     print(f'Frame key: {redis_frame_key}')
-    
-    threading.Thread(
-        target=read_frame_from_redis,          # función a ejecutar
-        args=(redis_frame_key, redis_crop_box, redis_person_id),  # argumentos posicionales
-        kwargs={                              # argumentos nombrados
-            'redis_host': 'redis-ezeiza',
-            'redis_port': 6379,
-            'redis_db': 0
-        }
-    ).start()
+
+    read_frame_from_redis(redis_frame_key, redis_crop_box, redis_person_id)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"on_message() took {elapsed_time:.6f} seconds on topic {msg.topic}: {payload['camera_id']} {payload['roi']} {payload['frame_num']}")
 
 def read_frame_from_redis(frame_key, crop_box, person_id, redis_host='redis-ezeiza', redis_port=6379, redis_db=0):
+    global saved_images_count
+
+    # If this person already has 4 saved images, skip
+    if saved_images_count.get(person_id, 0) == 4:        
+        rutas_guardadas = obtener_primeras_4_rutas(person_id)
+        threading.Thread(
+            target=analizar_y_guardar_imagen,
+            args=(person_id, rutas_guardadas)
+        ).start()            
+
     # Connect to Redis
     r = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
     try:
@@ -98,17 +120,16 @@ def read_frame_from_redis(frame_key, crop_box, person_id, redis_host='redis-ezei
             # If successful, create an image from the decoded data
             image = Image.open(io.BytesIO(decoded_data), formats=['JPEG'])            
         except Exception as e:
-            print(f"Base64 decoding failed: {e}")
             # If base64 decoding fails, try direct binary data
             image = Image.open(io.BytesIO(image_data), formats=['JPEG'])
         
         cropped_image = image.crop(crop_box)
-        ruta_guardada = iu.guardar_imagen(cropped_image, person_id, carpeta_salida, "Cuerpo")
-        
-        rta = ollama_analyze_image("Describi lo que ves en la imagen.", ruta_guardada)
-        db.guardar_datos(person_id, {"descripcion": rta})
-        
+        ruta_guardada = iu.guardar_imagen(cropped_image, person_id, carpeta_salida, "Cuerpo")        
+
         if ruta_guardada:
+            # Actualizamos contador
+            saved_images_count[person_id] = saved_images_count.get(person_id, 0) + 1
+
             carpeta_id = os.path.dirname(ruta_guardada)
             # Guardar en base de datos en segundo plano (no espera)
             db.guardar_datos(person_id, {"ruta_cuerpo": carpeta_id})
@@ -121,6 +142,39 @@ def read_frame_from_redis(frame_key, crop_box, person_id, redis_host='redis-ezei
         detector_caras.detectar_caras_en_imagen(cropped_image, person_id)
 
     return image
+
+def obtener_primeras_4_rutas(person_id, base_dir="Personas_Detectadas"):
+    """
+    Devuelve las rutas de las primeras 4 imágenes de un ID específico
+    en la carpeta 'Cuerpo'.
+    
+    Args:
+        person_id (str/int): ID de la persona.
+        base_dir (str): Carpeta base donde están las personas detectadas.
+    
+    Returns:
+        list: Lista de rutas absolutas a las primeras 4 imágenes.
+    """
+    carpeta_cuerpo = os.path.join(base_dir, f"persona_{person_id}", "Cuerpo")
+    
+    if not os.path.exists(carpeta_cuerpo):
+        return []  # Retorna lista vacía si no existe la carpeta
+    
+    # Listamos solo archivos y los ordenamos (por nombre)
+    imagenes = [os.path.join(carpeta_cuerpo, f) 
+                for f in os.listdir(carpeta_cuerpo) 
+                if os.path.isfile(os.path.join(carpeta_cuerpo, f))]
+    
+    imagenes.sort()  # Opcional: ordenar por nombre o timestamp
+    
+    return imagenes[:4]  # Devolver solo las primeras 4
+
+def analizar_y_guardar_imagen(person_id, rutas_guardadas):
+    try:
+        rta = ollama_analyze_images(rutas_guardadas, prompt)
+        db.guardar_datos(person_id, {"descripcion": rta})
+    except Exception as e:
+        print(f"[ERROR] ID {person_id}: Ollama falló -> {e}")
 
 def main(args):
     global mqtt_client
