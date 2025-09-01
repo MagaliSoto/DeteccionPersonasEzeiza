@@ -1,9 +1,9 @@
-# demo-ypf
-YPF Demo
+# demo
+Demo Ezeiza
 
 ## Clonning the repo:
 ```bash
-git clone --recurse-submodules git@github.com:g2fdev/demo-ypf.git
+git clone git@github.com:MagaliSoto/DeteccionPersonasEzeiza.git
 ```
 
 ## Running:
@@ -11,5 +11,4 @@ git clone --recurse-submodules git@github.com:g2fdev/demo-ypf.git
 1. `xhost +`
 
 2. `docker compose --profile deepstream up -d --build --force-recreate`
-
 

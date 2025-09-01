@@ -1,13 +1,13 @@
-let albumsGlobal = [];
-let currentAlbum = null;
-let currentIndex = 0;
-let totalImages = 0;
-let currentFolderImages = []; // imágenes de la carpeta activa
+// ---------------------- Variables globales ----------------------
+let albumsGlobal = [];           // Guarda todos los álbumes cargados desde la API
+let currentAlbum = null;         // Álbum actualmente abierto
+let currentIndex = 0;            // Índice de la imagen actual dentro de la carpeta
+let totalImages = 0;             // Total de imágenes en la carpeta seleccionada
+let currentFolderImages = [];    // Imágenes de la carpeta activa dentro del álbum
 
 // ---------------------- Función de formateo de fechas ----------------------
 function formatDate(fechaISO, forFilter = false) {
     if (!fechaISO) return "";
-
     const d = new Date(fechaISO);
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -15,13 +15,10 @@ function formatDate(fechaISO, forFilter = false) {
     const hours = String(d.getHours()).padStart(2, "0");
     const minutes = String(d.getMinutes()).padStart(2, "0");
 
-    if (forFilter) {
-        // Solo para filtro: aaaa-mm-dd
-        return `${year}-${month}-${day}`;
-    } else {
-        // Para mostrar: dd/mm/aaaa hh:mm
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    }
+    // Si es para filtro, devolver en formato yyyy-mm-dd
+    if (forFilter) return `${year}-${month}-${day}`;
+    // Para mostrar en la galería: dd/mm/yyyy hh:mm
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 // ---------------------- Renderizar galería ----------------------
@@ -30,19 +27,22 @@ async function renderGallery(albums = null) {
     container.innerHTML = "";
 
     try {
-        let albumsToRender = albums;
+        // Determinar qué álbumes mostrar
+        let albumsToRender = Array.isArray(albums) ? albums : null;
 
+        // Si no se pasan álbumes como parámetro, obtenerlos desde la API
         if (!albumsToRender) {
-            const res = await fetch("http://api:8001/api/personas");
+            const res = await fetch("/api/personas"); // ruta relativa
             albumsToRender = await res.json();
-            albumsGlobal = albumsToRender;
+            albumsGlobal = albumsToRender; // Guardar globalmente
         }
 
+        // Crear las tarjetas de cada álbum
         albumsToRender.forEach(album => {
             const card = document.createElement("div");
             card.classList.add("card");
 
-            const portada = "icon.png";
+            const portada = "icon.png"; // Imagen de portada genérica
             const formattedDate = formatDate(album.fecha);
 
             card.innerHTML = `
@@ -55,10 +55,12 @@ async function renderGallery(albums = null) {
                 </div>
             `;
 
+            // Al hacer click en la tarjeta, abrir el álbum
             card.addEventListener("click", () => openAlbum(album));
             container.appendChild(card);
         });
 
+        // Mostrar cantidad total de álbumes
         document.getElementById("photoCount").textContent = `${albumsToRender.length} álbum(es)`;
     } catch (error) {
         console.error("Error cargando los álbumes:", error);
@@ -71,9 +73,9 @@ function openAlbum(album) {
     currentIndex = 0;
     currentFolderImages = [];
 
+    // Actualizar título y fecha del modal
     document.getElementById("modalTitle").textContent = `Persona ${album.ID}`;
     document.getElementById("modalDate").textContent = formatDate(album.fecha);
-    // Mostrar descripción formateada
     document.getElementById("modalDescription").innerHTML = formatDescripcion(album.descripcion);
 
     const buttonsContainer = document.getElementById("folderButtons");
@@ -83,7 +85,7 @@ function openAlbum(album) {
     const nextBtn = document.getElementById("nextBtn");
     const modalImg = document.getElementById("modalImage");
 
-    // Limpiar imagen y ocultar botones
+    // Limpiar imagen y ocultar botones de navegación
     modalImg.src = "";
     prevBtn.style.display = "none";
     nextBtn.style.display = "none";
@@ -97,6 +99,7 @@ function openAlbum(album) {
             const btn = document.createElement("button");
             btn.textContent = folderName;
             btn.addEventListener("click", () => {
+                // Filtrar imágenes de la carpeta seleccionada
                 currentFolderImages = album.imagenes.filter(img => img.includes(folderName));
                 currentIndex = 0;
                 totalImages = currentFolderImages.length;
@@ -106,6 +109,7 @@ function openAlbum(album) {
         }
     });
 
+    // Mostrar modal
     document.getElementById("photoModal").classList.remove("hidden");
 }
 
@@ -120,10 +124,21 @@ function formatDescripcion(descripcionObj) {
     return `<ul class="descripcion-lista">${items}</ul>`;
 }
 
+// Convertir clave tipo "ropa_principal" a "Ropa Principal"
 function formatearClave(clave) {
-    // Pasa de "ropa_principal" a "Ropa principal"
     return clave.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 }
+
+// ---------------------- Botón de limpiar filtros ----------------------
+document.getElementById("resetFiltersBtn").addEventListener("click", () => {
+    document.getElementById("dateInput").value = "";
+    document.getElementById("startTime").value = "";
+    document.getElementById("endTime").value = "";
+    document.getElementById("keywordInput").value = "";
+    document.getElementById("includeWithoutDescription").checked = true;
+
+    renderGallery(albumsGlobal); // recarga todos los álbumes
+});
 
 // ---------------------- Mostrar imagen ----------------------
 function showImage() {
@@ -143,7 +158,7 @@ function showImage() {
     nextBtn.style.display = "inline-block";
 }
 
-// ---------------------- Navegación ----------------------
+// ---------------------- Navegación entre imágenes ----------------------
 document.getElementById("prevBtn").addEventListener("click", () => {
     if (totalImages === 0) return;
     currentIndex = (currentIndex - 1 + totalImages) % totalImages;
@@ -164,22 +179,18 @@ document.querySelector(".close").addEventListener("click", () => {
 // ---------------------- Funciones de filtrado ----------------------
 function filterByDate(album, dateValue) {
     if (!dateValue) return true;
-    const albumDate = formatDate(album.fecha, true); // yyyy-mm-dd
-    return albumDate === dateValue;
+    return formatDate(album.fecha, true) === dateValue;
 }
 
 function filterByTime(album, startTime, endTime) {
-    if (!album.fecha) return true; // si no hay fecha, no filtra por hora
+    if (!album.fecha) return true;
     const d = new Date(album.fecha);
     const albumHour = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:00`;
-
     const startTimeFull = startTime ? startTime + ":00" : null;
     const endTimeFull = endTime ? endTime + ":00" : null;
-
     let matches = true;
     if (startTimeFull) matches = matches && (albumHour >= startTimeFull);
     if (endTimeFull) matches = matches && (albumHour <= endTimeFull);
-
     return matches;
 }
 
@@ -213,16 +224,5 @@ document.getElementById("searchBtn").addEventListener("click", () => {
     renderGallery(filtered);
 });
 
-// ---------------------- Limpiar filtros ----------------------
-document.getElementById("resetFiltersBtn").addEventListener("click", () => {
-    document.getElementById("dateInput").value = "";
-    document.getElementById("startTime").value = "";
-    document.getElementById("endTime").value = "";
-    document.getElementById("keywordInput").value = "";
-    document.getElementById("includeWithoutDescription").checked = true;
-
-    renderGallery(albumsGlobal); // recarga todos los álbumes
-});
-
-// ---------------------- Inicializar ----------------------
+// ---------------------- Inicializar galería ----------------------
 renderGallery();

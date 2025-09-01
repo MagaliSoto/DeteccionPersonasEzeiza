@@ -18,7 +18,7 @@ def ollama_analyze_image(prompt, image_path, retries=2):
     
     for attempt in range(retries):
         try:
-            response = requests.post(OLLAMA_URL, json=payload, timeout=100)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=150)
             response.raise_for_status()
             return response.json().get("response", "").strip()
         except Exception as e:
@@ -70,9 +70,12 @@ def ollama_analyze_images(image_paths: list, prompt: str) -> dict:
             Imagen previa analizada: {json.dumps(consolidated_info)}
 
             Corrige o confirma la información según la nueva imagen.
-            
-            IMPORTANTE: Devuelve solo un JSON válido. 
-            No uses ``` ni explicaciones adicionales.
+
+            ⚠️ IMPORTANTE: 
+            - Devuelve SOLO un JSON válido.
+            - No repitas claves.
+            - No escribas explicaciones ni texto adicional.
+            - No uses ```.
             """
 
         # Llamada a Ollama

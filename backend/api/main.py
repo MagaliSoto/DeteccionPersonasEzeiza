@@ -44,11 +44,11 @@ def listar_imagenes(carpeta: str):
         for archivo in sorted(os.listdir(carpeta)):
             if archivo.lower().endswith((".jpg", ".png")):
                 rel_path = os.path.relpath(carpeta, carpeta_imagenes)
-                url = f"http://localhost:8001/static/{carpeta_imagenes}/{rel_path}/{archivo}"
+                url = f"http://192.168.0.105:8001/static/{carpeta_imagenes}/{rel_path}/{archivo}"
                 imagenes.append(url.replace("\\", "/"))
     return imagenes
 
-@app.get("/api/personas")
+@app.get("/personas")
 def get_personas():
     personas = db.obtener_datos()
     for persona in personas:

@@ -93,7 +93,7 @@ def read_frame_from_redis(frame_key, crop_box, person_id, redis_host='redis-ezei
         threading.Thread(
             target=analizar_y_guardar_imagen,
             args=(person_id, rutas_guardadas)
-        ).start()            
+        ).start()
 
     # Connect to Redis
     r = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
@@ -172,7 +172,7 @@ def obtener_primeras_4_rutas(person_id, base_dir="Personas_Detectadas"):
 def analizar_y_guardar_imagen(person_id, rutas_guardadas):
     try:
         rta = ollama_analyze_images(rutas_guardadas, prompt)
-        db.guardar_datos(person_id, {"descripcion": rta})
+        db.guardar_datos(person_id, {"descripcion": json.dumps(rta)})
     except Exception as e:
         print(f"[ERROR] ID {person_id}: Ollama falló -> {e}")
 

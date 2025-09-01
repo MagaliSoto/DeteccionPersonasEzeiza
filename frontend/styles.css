@@ -27,7 +27,7 @@ body {
     align-items: center;
     padding: 15px;
     background: #d3d3d3;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* permite que los filtros bajen de línea */
 }
 
 .filter-bar label {
@@ -39,6 +39,8 @@ body {
     border-radius: 8px;
     border: 1px solid #ccc;
     font-size: 14px;
+    flex: 1 1 auto;
+    min-width: 120px;
 }
 
 .filter-bar button {
@@ -50,10 +52,18 @@ body {
     cursor: pointer;
     font-weight: 500;
     transition: background 0.2s ease;
+    flex: 1 1 auto;
+    min-width: 120px;
 }
 
 .filter-bar button:hover {
     background: #f0f0f0;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 /* Barra info */
@@ -145,25 +155,21 @@ body {
     display: none;
 }
 
-/* Modal por defecto (solo texto, más chico) */
 .modal-content {
     background: white;
     padding: 2rem;
     border-radius: 12px;
     position: relative;
-    max-width: 500px;   /* más angosto cuando no hay imágenes */
+    max-width: 500px;
     width: 100%;
     box-shadow: 0 8px 25px rgba(0,0,0,0.25);
     animation: fadeIn 0.25s ease;
 }
 
-/* Modal extendido (con imágenes) */
 .modal-content.extendido {
-    max-width: 900px;   /* más ancho cuando hay imágenes */
+    max-width: 900px;
 }
 
-
-/* Animación modal */
 @keyframes fadeIn {
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
@@ -175,7 +181,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    padding-right: 35px; /* espacio extra para no chocar con el botón de cierre */
+    padding-right: 35px;
 }
 
 .modal-header h2 {
@@ -270,13 +276,14 @@ body {
     background: #ddd;
 }
 
+/* Modal body columnas */
 .modal-body {
     display: flex;
     gap: 30px;
     margin-top: 15px;
+    flex-wrap: nowrap;
 }
 
-/* Columna izquierda (texto + botones) */
 .modal-left {
     flex: 1;
     display: flex;
@@ -286,7 +293,6 @@ body {
     color: #444;
 }
 
-/* Columna derecha (imagen + flechas) */
 .modal-right {
     flex: 1.5;
     display: flex;
@@ -309,12 +315,53 @@ body {
 }
 
 .descripcion-lista {
-  list-style: none;      /* quita los puntitos */
-  padding: 0;
-  margin: 0;
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .descripcion-lista li {
-  display: block;        /* cada <li> ocupa toda la línea */
-  margin-bottom: 5px;    /* espacio entre ítems */
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .modal-body {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .modal-right {
+        justify-content: flex-start;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .filter-bar {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .filter-bar input,
+    .filter-bar button,
+    .filter-bar label {
+        width: 100%;
+    }
+
+    .gallery {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .card {
+        width: 90%;
+    }
 }
