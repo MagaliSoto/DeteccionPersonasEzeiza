@@ -32,7 +32,7 @@ async function renderGallery(albums = null) {
 
         // Si no se pasan álbumes como parámetro, obtenerlos desde la API
         if (!albumsToRender) {
-            const res = await fetch("/api/personas"); // ruta relativa
+            const res = await fetch("http://localhost:8001/api/personas");
             albumsToRender = await res.json();
             albumsGlobal = albumsToRender; // Guardar globalmente
         }
@@ -65,6 +65,37 @@ async function renderGallery(albums = null) {
     } catch (error) {
         console.error("Error cargando los álbumes:", error);
     }
+}
+
+// ---------------------- Auto-refresh de la galería ----------------------
+function autoUpdateGallery(interval = 5000) {
+    setInterval(async () => {
+        try {
+            const res = await fetch("http://localhost:8001/api/personas");
+            const data = await res.json();
+
+            // Comparar con albumsGlobal
+            const dataString = JSON.stringify(data);
+            const currentString = JSON.stringify(albumsGlobal);
+
+            if (dataString !== currentString) {
+                console.log("Nuevos datos detectados, actualizando galería...");
+                albumsGlobal = data;
+
+                // Solo actualizar la galería si no hay álbum abierto
+                const modalVisible = !document.getElementById("photoModal").classList.contains("hidden");
+                if (!modalVisible) {
+                    renderGallery(albumsGlobal);
+                } else {
+                    // Opcional: mostrar una notificación al usuario de que hay nuevos datos
+                    const notif = document.getElementById("newDataNotification");
+                    if (notif) notif.classList.remove("hidden");
+                }
+            }
+        } catch (err) {
+            console.error("Error actualizando galería:", err);
+        }
+    }, interval);
 }
 
 // ---------------------- Abrir álbum ----------------------
@@ -226,3 +257,4 @@ document.getElementById("searchBtn").addEventListener("click", () => {
 
 // ---------------------- Inicializar galería ----------------------
 renderGallery();
+autoUpdateGallery(5000); // revisa cada 5 segundos

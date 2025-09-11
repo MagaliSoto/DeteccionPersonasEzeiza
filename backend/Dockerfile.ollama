@@ -11,5 +11,5 @@ RUN apt-get update && apt-get install -y curl ca-certificates && \
 ENV OLLAMA_HOST=0.0.0.0
 EXPOSE 11434
 
-# Comando por defecto: arrancar Ollama y bajar el modelo si no existe
-CMD ["/bin/bash", "-c", "ollama serve & sleep 5 && if ! ollama list | grep -q 'qwen2.5vl:7b'; then ollama pull qwen2.5vl:7b; fi && wait"]
+# Comando por defecto: arrancar Ollama y bajar el modelo de la env var
+CMD ["/bin/bash", "-c", "ollama serve & sleep 5 && if ! ollama list | grep -q \"$OLLAMA_MODEL\"; then ollama pull \"$OLLAMA_MODEL\"; fi && wait"]

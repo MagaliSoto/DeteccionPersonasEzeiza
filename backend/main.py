@@ -3,7 +3,7 @@ import paho.mqtt.client as mqtt
 from PIL import Image
 from detectores.detector_caras import DetectorCaras
 from utils import imagenes_utils as iu
-from utils.ollama_utils import ollama_analyze_images
+from utils.ollama_utils import ollama_analyze_image
 from db.db_manager import DBManager
 from datetime import datetime
 
@@ -15,7 +15,7 @@ topic = "/perception/tracking"
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 prompt = """
-Analiza la imagen de una persona y devuelve SOLO un JSON válido con este formato:
+Analiza el collage de la persona y devuelve ÚNICAMENTE un JSON válido EXACTAMENTE con este formato:
 
 {
   "genero": "masculino | femenino | desconocido",
@@ -25,10 +25,11 @@ Analiza la imagen de una persona y devuelve SOLO un JSON válido con este format
   "accesorio_cabeza": "ninguno | gorra | gorro | sombrero | capucha | otro"
 }
 
-Reglas:
-- Usa SOLO estos campos.
-- No agregues campos extra.
-- Devuelve únicamente el JSON.
+Reglas estrictas:
+- NO agregues texto, explicaciones o pasos.
+- NO agregues campos extra.
+- Devuelve solo el JSON.
+- Asegúrate de que el JSON sea válido para ser leído directamente por un parser.
 """
 
 # Configuración DB
@@ -87,12 +88,20 @@ def on_message(client, userdata, msg):
 def read_frame_from_redis(frame_key, crop_box, person_id, redis_host='redis-ezeiza', redis_port=6379, redis_db=0):
     global saved_images_count
 
+    personas = db.obtener_datos()
+    if len(personas) == 20:
+        db.eliminar_datos(track_id=personas[0]['ID'])
+        iu.eliminar_carpeta(f"{carpeta_salida}/persona_{personas[0]['ID']}")
+
     # If this person already has 4 saved images, skip
-    if saved_images_count.get(person_id, 0) == 4:        
-        rutas_guardadas = obtener_primeras_4_rutas(person_id)
+    if saved_images_count.get(person_id, 0) == 4:    
+        rutas_guardadas = obtener_primeras_4_rutas(person_id)    
+        ruta_collage = iu.collage_4_desde_rutas_guardar(rutas_guardadas, person_id)
+
         threading.Thread(
             target=analizar_y_guardar_imagen,
-            args=(person_id, rutas_guardadas)
+            args=(person_id, ruta_collage),
+            daemon=True
         ).start()
 
     # Connect to Redis
@@ -169,10 +178,20 @@ def obtener_primeras_4_rutas(person_id, base_dir="Personas_Detectadas"):
     
     return imagenes[:4]  # Devolver solo las primeras 4
 
-def analizar_y_guardar_imagen(person_id, rutas_guardadas):
+def analizar_y_guardar_imagen(person_id, collage):
     try:
-        rta = ollama_analyze_images(rutas_guardadas, prompt)
-        db.guardar_datos(person_id, {"descripcion": json.dumps(rta)})
+        respuesta = ollama_analyze_image(prompt, collage)
+        try:
+            # Intenta decodificar si viene como string
+            if respuesta.startswith('"') and respuesta.endswith('"'):
+                respuesta = json.loads(respuesta.strip('"'))
+
+            descripcion_json = json.loads(respuesta)
+        except Exception as e:
+            print("Error parseando descripción:", e)
+            descripcion_json = {}
+
+        db.guardar_datos(person_id, {"descripcion": json.dumps(descripcion_json)})
     except Exception as e:
         print(f"[ERROR] ID {person_id}: Ollama falló -> {e}")
 

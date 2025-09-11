@@ -1,5 +1,5 @@
 services:
-  backend:
+  backend: 
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -12,11 +12,12 @@ services:
     volumes:
       - ./Personas_Detectadas:/app/Personas_Detectadas
     ports:
-      - "8000:8000"
+      - "8002:8000"
     restart: always
     networks:
       - demo-network
-  api:
+      
+  api: 
     build:
       context: .
       dockerfile: api/Dockerfile
@@ -32,7 +33,7 @@ services:
     restart: always
     networks:
       - demo-network
-
+      
   ollama:
     build:
       context: .
@@ -40,6 +41,8 @@ services:
     container_name: ollama
     env_file:
       - ./.env
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
     volumes:
       - ./ollama-models:/root/.ollama
     restart: always
@@ -62,6 +65,18 @@ services:
       - ./mysql-data:/var/lib/mysql
     networks:
       - demo-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8080:80" # 8080 en host, 80 en contenedor
+    networks:
+      - demo-network
+    depends_on:
+      - api
 
 networks:
   demo-network:

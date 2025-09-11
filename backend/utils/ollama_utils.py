@@ -18,7 +18,7 @@ def ollama_analyze_image(prompt, image_path, retries=2):
     
     for attempt in range(retries):
         try:
-            response = requests.post(OLLAMA_URL, json=payload, timeout=150)
+            response = requests.post(OLLAMA_URL, json=payload, timeout=250)
             response.raise_for_status()
             return response.json().get("response", "").strip()
         except Exception as e:

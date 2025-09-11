@@ -48,7 +48,7 @@ def listar_imagenes(carpeta: str):
                 imagenes.append(url.replace("\\", "/"))
     return imagenes
 
-@app.get("/personas")
+@app.get("/api/personas")
 def get_personas():
     personas = db.obtener_datos()
     for persona in personas:
